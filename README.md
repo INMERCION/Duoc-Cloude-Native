@@ -1,59 +1,60 @@
-# Pedidos360Front
+# Pedidos360
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.1.7.
+Proyecto de DUOC Cloud Native con un frontend Angular y una API Spring Boot, mantenidos en un unico repositorio.
 
-## Development server
+## Estructura
 
-To start a local development server, run:
+- `pedidos360-front/`: interfaz Angular y autenticacion con Amazon Cognito.
+- `pedidos360-backend/`: API REST Java con datos de pedidos de ejemplo.
 
-```bash
-ng serve
+## Requisitos
+
+- Java 17, segun el `pom.xml` del backend.
+- Node.js compatible con Angular 22 y npm (el frontend declara npm 11.16.0).
+- El backend incluye Maven Wrapper; no requiere una instalacion global de Maven.
+
+## Ejecutar el backend
+
+Desde la raiz, en PowerShell:
+
+```powershell
+cd pedidos360-backend
+.\mvnw.cmd spring-boot:run
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+La API se inicia en `http://localhost:8888`. El endpoint `GET /api/pedidos` devuelve pedidos de ejemplo.
 
-## Code scaffolding
+En Linux o macOS se puede usar `sh mvnw spring-boot:run` dentro de la misma carpeta.
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Ejecutar el frontend
 
-```bash
-ng generate component component-name
+En otra terminal, desde la raiz:
+
+```powershell
+cd pedidos360-front
+npm ci
+npm start
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Abrir `http://localhost:4200`.
 
-```bash
-ng generate --help
+Actualmente el frontend consulta una API desplegada en AWS API Gateway; no apunta al backend local. La URL se configura en `pedidos360-front/src/app/pedidos.service.ts`. La configuracion de Cognito y las URL de redireccion estan en `pedidos360-front/src/main.ts` y requieren los recursos AWS correspondientes para iniciar sesion.
+
+## Comprobaciones
+
+Desde `pedidos360-front/`:
+
+```powershell
+npm run build
+npm test
 ```
 
-## Building
+Desde `pedidos360-backend/`:
 
-To build the project run:
-
-```bash
-ng build
+```powershell
+.\mvnw.cmd test
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+## Git
 
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Ejecutar los comandos Git desde la raiz para gestionar ambos proyectos juntos. El `.gitignore` general complementa los archivos de cada proyecto y excluye dependencias, compilaciones, logs y archivos `.env` locales. Se conserva `package-lock.json` para reproducir la instalacion del frontend.

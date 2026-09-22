@@ -1,0 +1,54 @@
+<main class="container">
+  <h1>Pedidos 360</h1>
+  <p>
+    Frontend Cloud Native
+  </p>
+  <hr>
+  <button (click) ="login()">
+    Iniciar Sesion
+  </button>
+  <button (click) ="verSesion()">
+    Ver Sesion
+  </button>
+  <button (click) ="logout()">
+    Cerrar Sesion
+  </button>
+
+  @if (autenticado){
+    <section>
+      <h2>Usuario Autenticado</h2>
+      <p>{{usuario}}</p>
+
+      <h3>Access Token</h3>
+      <textarea rows="10" cols="80" readonly>{{token}}</textarea>
+
+      <hr>
+      <button (click)="consultarPedidos()">
+        Consultar Pedidos
+      </button>
+      @if (cargandoPedidos) {
+        <p>Cargando Pedidos.......</p>
+      }
+      @if(errorPedidos){
+        <p>{{errorPedidos}}</p>
+      }
+      @if (pedidos.length > 0) {
+        @for(pedido of pedidos; track pedido.id){
+          <article>
+            <h3>
+              Pedido #{{pedido.id}}
+            </h3>
+            <p><strong>Estado:</strong> {{pedido.estado}}</p>
+            <p><strong>Producto:</strong> {{pedido.producto}}</p>
+            <hr>
+          </article>
+        }
+
+      }
+
+    </section>
+
+
+  }
+
+</main>
