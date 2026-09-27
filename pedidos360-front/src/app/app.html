@@ -1,54 +1,99 @@
 <main class="container">
-  <h1>Pedidos 360</h1>
-  <p>
-    Frontend Cloud Native
-  </p>
-  <hr>
-  <button (click) ="login()">
-    Iniciar Sesion
-  </button>
-  <button (click) ="verSesion()">
-    Ver Sesion
-  </button>
-  <button (click) ="logout()">
-    Cerrar Sesion
-  </button>
+  <header>
+    <div><p class="eyebrow">PEDIDOS360</p><h1>Gestión de pedidos</h1></div>
+    @if (autenticado()) {
+      <div class="session"><span>{{ usuario() }}</span><button type="button" (click)="logout()">Cerrar sesión</button></div>
+    }
+  </header>
 
-  @if (autenticado){
-    <section>
-      <h2>Usuario Autenticado</h2>
-      <p>{{usuario}}</p>
+  @if (error()) { <p class="notice error" role="alert">{{ error() }}</p> }
+  @if (mensaje()) { <p class="notice success" role="status">{{ mensaje() }}</p> }
 
-      <h3>Access Token</h3>
-      <textarea rows="10" cols="80" readonly>{{token}}</textarea>
-
-      <hr>
-      <button (click)="consultarPedidos()">
-        Consultar Pedidos
-      </button>
-      @if (cargandoPedidos) {
-        <p>Cargando Pedidos.......</p>
-      }
-      @if(errorPedidos){
-        <p>{{errorPedidos}}</p>
-      }
-      @if (pedidos.length > 0) {
-        @for(pedido of pedidos; track pedido.id){
-          <article>
-            <h3>
-              Pedido #{{pedido.id}}
-            </h3>
-            <p><strong>Estado:</strong> {{pedido.estado}}</p>
-            <p><strong>Producto:</strong> {{pedido.producto}}</p>
-            <hr>
-          </article>
-        }
-
-      }
-
+  @if (verificandoSesion()) {
+    <p role="status">Verificando sesión…</p>
+  } @else if (!autenticado()) {
+    <section class="card"><h2>Administra tus pedidos</h2>
+      <p>Inicia sesión para consultar y gestionar pedidos.</p>
+      <button type="button" class="primary" (click)="login()">Iniciar sesión</button>
     </section>
-
-
   }
 
+  @if (autenticado()) {
+    @if (!puede('create') || !puede('update') || !puede('delete')) {
+      <p class="notice">Algunas acciones no están disponibles con los permisos de tu sesión.</p>
+    }
+    @if (puede('create') || editandoId() !== null) {
+      <section class="card">
+        <h2>{{ editandoId() === null ? 'Nuevo pedido' : 'Editar pedido #' + editandoId() }}</h2>
+        <form #pedidoForm="ngForm" (ngSubmit)="guardar()">
+          <fieldset [disabled]="ocupado()">
+            <div class="fields">
+              <label>Cliente<input name="cliente" [(ngModel)]="form.cliente" required maxlength="120"></label>
+              <label>Producto<input name="producto" [(ngModel)]="form.producto" required maxlength="160"></label>
+              <label>Cantidad<input name="cantidad" type="number" [(ngModel)]="form.cantidad" required min="1" max="1000000" step="1"></label>
+              <label>Estado<select name="estado" [(ngModel)]="form.estado" required>
+                @for (estado of estados; track estado) { <option [value]="estado">{{ estado.replaceAll('_', ' ') }}</option> }
+              </select></label>
+            </div>
+            <div class="actions">
+              <button class="primary" type="submit" [disabled]="pedidoForm.invalid || ocupado()">
+                {{ editandoId() === null ? 'Crear pedido' : 'Guardar cambios' }}
+              </button>
+              @if (editandoId() !== null) { <button type="button" (click)="cancelarEdicion()">Cancelar edición</button> }
+            </div>
+          </fieldset>
+        </form>
+      </section>
+    }
+
+    <section class="card" [attr.aria-busy]="ocupado()">
+      <div class="section-header"><h2>Pedidos <span class="count">{{ pedidos().length }}</span></h2>
+        @if (puede('read')) { <button type="button" (click)="consultarPedidos()" [disabled]="ocupado()">Actualizar lista</button> }
+      </div>
+      @if (puede('read')) {
+        <div class="search-bar">
+          <label for="buscar-pedidos">Buscar pedidos
+            <input #buscador id="buscar-pedidos" type="search"
+              placeholder="ID, cliente, producto o estado"
+              [ngModel]="busqueda()" (ngModelChange)="busqueda.set($event)"
+              aria-describedby="resultados-busqueda">
+          </label>
+          <button type="button" (click)="busqueda.set(''); buscador.focus()" [disabled]="!busqueda()">Limpiar</button>
+        </div>
+        <p id="resultados-busqueda" class="search-count" role="status">
+          Mostrando {{ pedidosFiltrados().length }} de {{ pedidos().length }} pedidos
+        </p>
+      }
+      @if (ocupado()) { <p role="status">Procesando…</p> }
+      @if (!puede('read')) { <p>No tienes permiso para consultar pedidos.</p> }
+      @else if (pedidos().length === 0 && !ocupado()) { <p>No hay pedidos para mostrar.</p> }
+      @else if (pedidosFiltrados().length === 0 && !ocupado()) { <p>No hay pedidos que coincidan con tu búsqueda.</p> }
+      @if (eliminando(); as pedido) {
+        <div class="notice" role="alert">
+          <p>¿Eliminar el pedido #{{ pedido.id }} de {{ pedido.cliente }}? Esta acción es permanente.</p>
+          <div class="actions">
+            <button type="button" class="danger" (click)="confirmarEliminar()" [disabled]="ocupado()">Sí, eliminar</button>
+            <button type="button" (click)="eliminando.set(null)" [disabled]="ocupado()">Cancelar</button>
+          </div>
+        </div>
+      }
+      @if (pedidosFiltrados().length > 0 && puede('read')) {
+        <div class="table-scroll"><table>
+          <thead><tr><th>ID</th><th>Cliente</th><th>Producto</th><th>Cantidad</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody>
+            @for (pedido of pedidosFiltrados(); track pedido.id) {
+              <tr>
+                <td>#{{ pedido.id }}</td><td>{{ pedido.cliente }}</td><td>{{ pedido.producto }}</td>
+                <td>{{ pedido.cantidad }}</td><td><span class="badge">{{ pedido.estado.replaceAll('_', ' ') }}</span></td>
+                <td><div class="actions">
+                  @if (puede('update')) { <button type="button" (click)="editar(pedido)" [disabled]="ocupado()" [attr.aria-label]="'Editar pedido ' + pedido.id">Editar</button> }
+                  @if (puede('delete')) { <button type="button" class="danger" (click)="eliminando.set(pedido)" [disabled]="ocupado()" [attr.aria-label]="'Eliminar pedido ' + pedido.id">Eliminar</button> }
+                </div></td>
+              </tr>
+            }
+          </tbody>
+        </table></div>
+      }
+    </section>
+  }
 </main>

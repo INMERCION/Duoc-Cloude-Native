@@ -1,60 +1,60 @@
 # Pedidos360
 
-Proyecto de DUOC Cloud Native con un frontend Angular y una API Spring Boot, mantenidos en un unico repositorio.
+Angular local + Cognito + API Gateway REST + Spring Boot en EC2.
 
-## Estructura
+El proyecto implementa CRUD de pedidos, autorización por scope y persistencia H2 en archivo.
+La base comienza vacía. El frontend ya solicita los cuatro scopes: debes habilitarlos en Cognito antes de iniciar sesión.
 
-- `pedidos360-front/`: interfaz Angular y autenticacion con Amazon Cognito.
-- `pedidos360-backend/`: API REST Java con datos de pedidos de ejemplo.
+**[Guía paso a paso: EC2, Cognito, API Gateway, CORS y pruebas](docs/CRUD-AWS-PASO-A-PASO.md)**
 
 ## Requisitos
 
-- Java 17, segun el `pom.xml` del backend.
-- Node.js compatible con Angular 22 y npm (el frontend declara npm 11.16.0).
-- El backend incluye Maven Wrapper; no requiere una instalacion global de Maven.
+Java 17 y Node.js compatible con Angular 22. Maven Wrapper está incluido.
+Las dependencias Angular se instalan con `npm ci` dentro de pedidos360-front.
 
-## Ejecutar el backend
-
-Desde la raiz, en PowerShell:
+## Backend
 
 ```powershell
 cd pedidos360-backend
-.\mvnw.cmd spring-boot:run
+.\mvnw.cmd package
+java -jar target/pedidos360-backend-0.0.1-SNAPSHOT.jar
 ```
 
-La API se inicia en `http://localhost:8888`. El endpoint `GET /api/pedidos` devuelve pedidos de ejemplo.
+Puerto 8888. Todas las operaciones requieren un access token Cognito válido.
+Sin token, GET devuelve 401. La validación JWT también se aplica al acceso directo a EC2.
 
-En Linux o macOS se puede usar `sh mvnw spring-boot:run` dentro de la misma carpeta.
+| Método | Ruta | Scope (prefijo rs-api-pedidos/) |
+|---|---|---|
+| GET | /api/pedidos | pedidos-read |
+| GET | /api/pedidos/{id} | pedidos-read |
+| POST | /api/pedidos | pedidos-create |
+| PUT | /api/pedidos/{id} | pedidos-update |
+| DELETE | /api/pedidos/{id} | pedidos-delete |
 
-## Ejecutar el frontend
+Configuración en application.properties, sobreescribible con DB_URL, DB_USERNAME,
+DB_PASSWORD, COGNITO_ISSUER, COGNITO_CLIENT_ID y FRONTEND_ORIGIN.
+En EC2 usa una ruta absoluta para DB_URL. No borres data/ al actualizar el JAR.
 
-En otra terminal, desde la raiz:
+## Frontend
 
 ```powershell
 cd pedidos360-front
-npm ci
 npm start
 ```
 
-Abrir `http://localhost:4200`.
+Abre http://localhost:4200. La API se configura en src/app/api.config.ts y Cognito en src/main.ts.
+Por defecto consume API Gateway, aunque ejecutes también un backend local.
+Los pedidos son compartidos entre usuarios autorizados; no hay separación por propietario ni roles.
 
-Actualmente el frontend consulta una API desplegada en AWS API Gateway; no apunta al backend local. La URL se configura en `pedidos360-front/src/app/pedidos.service.ts`. La configuracion de Cognito y las URL de redireccion estan en `pedidos360-front/src/main.ts` y requieren los recursos AWS correspondientes para iniciar sesion.
-
-## Comprobaciones
-
-Desde `pedidos360-front/`:
+## Pruebas
 
 ```powershell
-npm run build
-npm test
-```
-
-Desde `pedidos360-backend/`:
-
-```powershell
+# Dentro de pedidos360-backend
 .\mvnw.cmd test
+
+# Dentro de pedidos360-front
+npm run build
+npm test -- --watch=false
 ```
 
-## Git
-
-Ejecutar los comandos Git desde la raiz para gestionar ambos proyectos juntos. El `.gitignore` general complementa los archivos de cada proyecto y excluye dependencias, compilaciones, logs y archivos `.env` locales. Se conserva `package-lock.json` para reproducir la instalacion del frontend.
+Las pruebas automatizadas no llaman a AWS. La guía incluye la comprobación completa del despliegue.

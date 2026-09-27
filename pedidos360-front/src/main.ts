@@ -2,6 +2,7 @@ import { bootstrapApplication } from '@angular/platform-browser';
 import { appConfig } from './app/app.config';
 import { App } from './app/app';
 import { Amplify } from 'aws-amplify';
+import { API_CONFIG } from './app/api.config';
 
 Amplify.configure({
   Auth:{
@@ -15,7 +16,7 @@ Amplify.configure({
             'email',
             'openid',
             'profile',
-            'rs-api-pedidos/pedidos-read'
+            ...Object.values(API_CONFIG.scopes)
           ],
           redirectSignIn:[
             'http://localhost:4200'

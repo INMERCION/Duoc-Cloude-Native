@@ -17,3 +17,8 @@ Thumbs.db
 
 # Archivos locales de herramientas de migracion
 **/.github/modernize/
+
+# Local database files
+**/data/
+*.mv.db
+*.trace.db
